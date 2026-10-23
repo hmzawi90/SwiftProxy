@@ -1,0 +1,31 @@
+name: Build SwiftProxy APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK, build tools and NDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platforms;android-34' 'build-tools;34.0.0' 'ndk;29.0.14206865'
+      - name: Create SwiftProxy source from open-source core
+        run: python3 make_project.py
+      - name: Build APK
+        run: |
+          cd swiftproxy-android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SwiftProxy-debug-APK
+          path: swiftproxy-android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
